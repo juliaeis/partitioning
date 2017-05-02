@@ -94,4 +94,4 @@ if __name__ == '__main__':
     for task in task_list:
         execute_entity_task(task, gdirs)
     graphics.plot_centerlines(gdirs[0])
-    #plt.show()
+    #lt.show()
