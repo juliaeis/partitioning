@@ -84,6 +84,32 @@ def _compactness(polygon):
         return False
 
 
+def _compute_altitude(dem, polygon):
+    geoms = [mapping(polygon)]
+
+    with rasterio.open(dem) as src:
+        out_image, out_transform = mask(src, geoms, nodata=np.nan, crop=False)
+    altitude = np.nanmax(out_image)-np.nanmin(out_image)
+    return altitude
+
+
+def _check_altitude_rage(gpd_obj):
+
+    nokeep = ((gpd_obj['Perc_Alt_Range'] < 0.1) | (gpd_obj['Alt_Range'] < 100))
+    gpd_obj['keep'] = ~nokeep
+    print('We keep {} divides out of {} '
+          'after filtering.'.format(np.sum(gpd_obj['keep']),
+                                    len(gpd_obj)))
+    if np.sum(gpd_obj['keep']) == 1:
+        # Nothing to do! The divide should be ignored
+        return gpd_obj
+    while not gpd_obj['keep'].all():
+        geom = gpd_obj.loc[~gpd_obj['keep']].iloc[0]
+        gpd_obj = gpd_obj.drop(geom.name)
+        gpd_obj, bool = _merge_sliver(gpd_obj, geom.geometry)
+    return gpd_obj
+
+
 def _check_contain_divides(glacier_poly, id):
     exterior = glacier_poly.copy()
     for i in exterior.index:
@@ -405,12 +431,19 @@ def merge_flows(shed_shp, pour_point_shp):
     for id in glaciers.index:
         if id in glaciers.index:
             glaciers = _split_overlaps(glaciers, id)
+    print('start filter')
 
     # check if divide is inside another divide
     for id in glaciers.index:
         if id in glaciers.index:
             glaciers = _check_contain_divides(glaciers, id)
-
+            # compute altitude range
+            glaciers.loc[id, 'Alt_Range'] = _compute_altitude(filled_dem, glaciers.loc[id, 'geometry'])
+    # compute percentual altitude range
+    max_alt = np.max(glaciers.loc[:, 'Alt_Range'])
+    glaciers.loc[:, 'Perc_Alt_Range'] = glaciers.loc[:, 'Alt_Range'] / max_alt
+    #glaciers.to_file(os.path.join(os.path.dirname(shed_shp), 'glaciers_range.shp'))
+    glaciers = _check_altitude_rage(glaciers)
     # save glaciers
     i = 1
     for id in glaciers.index:
@@ -629,7 +662,7 @@ def _split_glacier(gpd_obj, index, polygon):
             gpd_obj = gpd_obj[gpd_obj.index != index]
             gpd_obj, done = _merge_sliver(gpd_obj, diff[max_poly])
         # rest merged as sliver polygon
-        rest = diff.difference(diff[max_poly])
+        rest = diff.buffer(0).difference(diff[max_poly].buffer(0))
         gpd_obj, done = _merge_sliver(gpd_obj, rest)
     return gpd_obj
 
@@ -714,6 +747,8 @@ def preprocessing(dem, shp, saga_cmd=None):
     global pixelsize
     global co
     global out1
+
+    global filled_dem
     pixelsize = 40
 
     smoothed_dem = _smooth_dem(dem)
@@ -765,7 +800,7 @@ def dividing_glaciers(input_dem, input_shp, saga_cmd=None):
 
     # delete files which are not needed anymore
     for file in os.listdir(os.path.dirname(input_shp)):
-        for word in ['P_glac', 'all', 'flow', 'glaciers', 'gutter', 'p_glac',
+        for word in ['P_glac',  'flow_', 'glaciers', 'gutter', 'p_glac',
                      'pour', 'smoothed', 'snapped', 'stream', 'masked',
                      'slivers', 'filled']:
             if file.startswith(word):

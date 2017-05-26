@@ -9,7 +9,7 @@ import os
 
 if __name__ == '__main__':
 
-    RUN_DIVIDES = False
+    RUN_DIVIDES = True
     CREATE_SHAPEFILE_ALL = False
     CREATE_SHAPEFILE_REGION = False
 
@@ -31,13 +31,13 @@ if __name__ == '__main__':
     file = os.path.join(cfg.PATHS['working_dir'], 'failed.pkl')
     not_working = pickle.load(open(file, 'rb'))[1]
     #print(not_working)
-    #rgi = ['RGI50-03.01466']
+    #rgi = ['RGI50-04.05774']
 
     rgidf = salem.read_shapefile(rgi_file, cached=True)
-    indices = [(i in not_working) for i in rgidf.RGIId]
+    #indices = [(i in rgi) for i in rgidf.RGIId]
 
-    #gdirs = workflow.init_glacier_regions(rgidf, reset=False)
-    gdirs = workflow.init_glacier_regions(rgidf[indices], reset=False)
+    gdirs = workflow.init_glacier_regions(rgidf, reset=False)
+    #gdirs = workflow.init_glacier_regions(rgidf[indices], reset=False)
 
     all_divides = gpd.GeoDataFrame(crs=rgidf.crs)
     failed = []
@@ -89,9 +89,10 @@ if __name__ == '__main__':
 
     fail = os.path.join(cfg.PATHS['working_dir'], 'failed.pkl')
     #pickle.dump(failed, open(fail, 'wb'))
-
+    '''
     task_list = [tasks.glacier_masks, tasks.compute_centerlines]
     for task in task_list:
         execute_entity_task(task, gdirs)
     graphics.plot_centerlines(gdirs[0])
-    #lt.show()
+    plt.show()
+    '''
