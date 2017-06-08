@@ -26,20 +26,11 @@ if __name__ == '__main__':
 
     RUN_DIVIDES = False
 
-    no_topo = ['RGI50-11.03813', 'RGI50-11.03814', 'RGI50-11.03815',
-               'RGI50-11.03816', 'RGI50-11.03817', 'RGI50-11.03818',
-               'RGI50-11.03819', 'RGI50-11.03820', 'RGI50-11.03821',
-               'RGI50-11.03822', 'RGI50-11.03823', 'RGI50-11.03824',
-               'RGI50-11.03825', 'RGI50-11.03826', 'RGI50-11.03827',
-               'RGI50-11.03828', 'RGI50-11.03829', 'RGI50-11.03830',
-               'RGI50-11.03831', 'RGI50-11.03832', 'RGI50-11.03833',
-               'RGI50-11.03834', 'RGI50-11.03835', 'RGI50-11.03836']
-    failed_topo = ['RGI50-11.00548', 'RGI50-11.03396']
     rgidf = salem.read_shapefile(RGI_FILE, cached=True)
     ID_s = pickle.load(open(os.path.join(base_dir, 'divided.pkl')))
 
-    indices = [((i in ID_s) and (i not in failed_topo)) for i in rgidf.RGIId]
-    #indices = [((i in ID_s)) for i in rgidf.RGIId]
+    #indices = [((i in ID_s) and (i not in failed_topo)) for i in rgidf.RGIId]
+    indices = [((i in ID_s)) for i in rgidf.RGIId]
     gdirs_orig = workflow.init_glacier_regions(rgidf[indices], reset=True)
 
     cfg.PATHS['working_dir'] = base_dir
